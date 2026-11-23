@@ -27,8 +27,21 @@ jobs:
       # Versão do pg_dump: igual ou maior que a do Postgres do Supabase.
       PG_MAJOR: "17"
     steps:
+      - name: Conferir se o backup já foi configurado
+        id: config
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          if [ -z "$BACKUP_DATABASE_URL" ]; then
+            echo "Segredos de backup ainda não configurados; nada a fazer."
+            echo "pronto=nao" >> "$GITHUB_OUTPUT"
+          else
+            echo "pronto=sim" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        if: steps.config.outputs.pronto == 'sim'
       - name: Instalar pg_dump e age
+        if: steps.config.outputs.pronto == 'sim'
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
@@ -37,6 +50,7 @@ jobs:
           sudo apt-get install -y -qq "postgresql-client-$PG_MAJOR" age
           echo "/usr/lib/postgresql/$PG_MAJOR/bin" >> "$GITHUB_PATH"
       - name: Gerar, criptografar e enviar
+        if: steps.config.outputs.pronto == 'sim'
         env:
           BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
           BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
