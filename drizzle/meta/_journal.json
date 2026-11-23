@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1795398452617,
+      "tag": "0000_fundacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795398453163,
+      "tag": "0001_imutabilidade",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795399121113,
+      "tag": "0002_login_e_auditoria",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795399121755,
+      "tag": "0003_auditoria_imutavel",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795400283484,
+      "tag": "0004_catalogo",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795400284262,
+      "tag": "0005_catalogo_travas",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795424265241,
+      "tag": "0006_catalogo_referencias",
+      "breakpoints": true
+    }
+  ]
+}

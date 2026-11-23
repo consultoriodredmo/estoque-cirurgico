@@ -1,0 +1,61 @@
+{
+  "id": "b47d27e0-e36c-4140-9ff4-26792a64291b",
+  "prevId": "f0860e70-6336-4819-bd45-3ea2e21d1aa4",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.ambiente_sistema": {
+      "name": "ambiente_sistema",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "default": 1
+        },
+        "ambiente": {
+          "name": "ambiente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "definido_em": {
+          "name": "definido_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ambiente_sistema_linha_unica": {
+          "name": "ambiente_sistema_linha_unica",
+          "value": "\"ambiente_sistema\".\"id\" = 1"
+        },
+        "ambiente_sistema_valor": {
+          "name": "ambiente_sistema_valor",
+          "value": "\"ambiente_sistema\".\"ambiente\" in ('teste', 'producao')"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

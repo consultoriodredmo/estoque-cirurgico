@@ -39,3 +39,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+!.env.example
+
+# cloudflare / opennext
+.open-next
+.wrangler
+.dev.vars
+
+# backups locais e chaves
+backups/
+*.age
+*.dump
+chave-backup*.txt

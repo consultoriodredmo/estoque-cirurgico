@@ -1,0 +1,24 @@
+// Configuração da Cloudflare (onde o sistema roda).
+// DATABASE_URL e BETTER_AUTH_SECRET NUNCA ficam aqui: é cadastrada como segredo com
+//   npx wrangler secret put DATABASE_URL --env teste
+//   npx wrangler secret put DATABASE_URL --env producao
+//   npx wrangler secret put BETTER_AUTH_SECRET --env teste   (e --env producao)
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "estoque-cirurgico",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  "env": {
+    "teste": {
+      "name": "estoque-cirurgico-teste",
+      "vars": { "APP_ENV": "teste", "BETTER_AUTH_URL": "https://estoque-cirurgico-teste.SEU-SUBDOMINIO.workers.dev" }
+    },
+    "producao": {
+      "name": "estoque-cirurgico",
+      "vars": { "APP_ENV": "producao", "BETTER_AUTH_URL": "https://estoque.SUA-CLINICA.com.br" }
+    }
+  }
+}
