@@ -1,0 +1,98 @@
+# Publica o AMBIENTE DE TESTE na Cloudflare a cada envio para main
+# (e quando disparado à mão). Antes de publicar, aplica as migrações no banco
+# de teste e garante os materiais iniciais.
+#
+# Segredos do repositório (Settings > Secrets and variables > Actions):
+#   TESTE_DATABASE_URL_SESSAO     Supabase "Session pooler" (porta 5432): migrações
+#   TESTE_DATABASE_URL_TRANSACAO  Supabase "Transaction pooler" (porta 6543): sistema no ar
+#   TESTE_AUTH_SECRET             chave das sessões (32+ caracteres)
+#   TESTE_APP_URL                 endereço do sistema de teste (https://...workers.dev)
+#   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
+name: Publicar teste
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publicar-teste
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Conferir se a publicação já foi configurada
+        id: config
+        env:
+          A: ${{ secrets.TESTE_DATABASE_URL_SESSAO }}
+          B: ${{ secrets.TESTE_DATABASE_URL_TRANSACAO }}
+          C: ${{ secrets.TESTE_AUTH_SECRET }}
+          D: ${{ secrets.TESTE_APP_URL }}
+          E: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          F: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          faltando=""
+          [ -z "$A" ] && faltando="$faltando TESTE_DATABASE_URL_SESSAO"
+          [ -z "$B" ] && faltando="$faltando TESTE_DATABASE_URL_TRANSACAO"
+          [ -z "$C" ] && faltando="$faltando TESTE_AUTH_SECRET"
+          [ -z "$D" ] && faltando="$faltando TESTE_APP_URL"
+          [ -z "$E" ] && faltando="$faltando CLOUDFLARE_API_TOKEN"
+          [ -z "$F" ] && faltando="$faltando CLOUDFLARE_ACCOUNT_ID"
+          if [ -n "$faltando" ]; then
+            echo "Publicação ainda não configurada. Faltam:$faltando"
+            echo "pronto=nao" >> "$GITHUB_OUTPUT"
+          else
+            echo "pronto=sim" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.pronto == 'sim'
+      - uses: actions/setup-node@v4
+        if: steps.config.outputs.pronto == 'sim'
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: steps.config.outputs.pronto == 'sim'
+
+      - name: Migrações e materiais iniciais (banco de teste)
+        if: steps.config.outputs.pronto == 'sim'
+        env:
+          DATABASE_URL: ${{ secrets.TESTE_DATABASE_URL_SESSAO }}
+          APP_ENV: teste
+          BETTER_AUTH_SECRET: ${{ secrets.TESTE_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ secrets.TESTE_APP_URL }}
+        run: |
+          npm run db:migrar
+          npm run catalogo:carga
+
+      - name: Build para a Cloudflare
+        if: steps.config.outputs.pronto == 'sim'
+        run: npm run cf:build
+
+      - name: Publicar e enviar segredos
+        if: steps.config.outputs.pronto == 'sim'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DATABASE_URL: ${{ secrets.TESTE_DATABASE_URL_TRANSACAO }}
+          BETTER_AUTH_SECRET: ${{ secrets.TESTE_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ secrets.TESTE_APP_URL }}
+        run: |
+          npx opennextjs-cloudflare deploy --env teste
+          node -e 'console.log(JSON.stringify({DATABASE_URL:process.env.DATABASE_URL,BETTER_AUTH_SECRET:process.env.BETTER_AUTH_SECRET,BETTER_AUTH_URL:process.env.BETTER_AUTH_URL}))' \
+            | npx wrangler secret bulk --env teste
+
+      - name: Conferir se o sistema respondeu
+        if: steps.config.outputs.pronto == 'sim'
+        env:
+          URL: ${{ secrets.TESTE_APP_URL }}
+        run: |
+          sleep 10
+          curl -fsS "$URL/api/saude"

@@ -1,0 +1,38 @@
+# Cria um administrador no banco de TESTE. Disparar à mão em Actions.
+# A senha temporária aparece no registro desta execução; ela só serve para o
+# primeiro acesso, quando a pessoa troca a senha e configura o código.
+name: Criar administrador (teste)
+
+on:
+  workflow_dispatch:
+    inputs:
+      nome:
+        description: Nome completo
+        required: true
+      email:
+        description: E-mail
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  criar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Criar administrador
+        env:
+          DATABASE_URL: ${{ secrets.TESTE_DATABASE_URL_SESSAO }}
+          APP_ENV: teste
+          BETTER_AUTH_SECRET: ${{ secrets.TESTE_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ secrets.TESTE_APP_URL }}
+          NOME: ${{ inputs.nome }}
+          EMAIL: ${{ inputs.email }}
+        run: npm run usuario:admin -- --nome "$NOME" --email "$EMAIL"

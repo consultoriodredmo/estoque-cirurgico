@@ -1,8 +1,7 @@
 // Configuração da Cloudflare (onde o sistema roda).
-// DATABASE_URL e BETTER_AUTH_SECRET NUNCA ficam aqui: é cadastrada como segredo com
-//   npx wrangler secret put DATABASE_URL --env teste
-//   npx wrangler secret put DATABASE_URL --env producao
-//   npx wrangler secret put BETTER_AUTH_SECRET --env teste   (e --env producao)
+// DATABASE_URL, BETTER_AUTH_SECRET e BETTER_AUTH_URL NUNCA ficam aqui: são
+// segredos enviados pelo workflow .github/workflows/publicar-teste.yml.
+// Para fazer à mão: npx wrangler secret put NOME --env teste (ou --env producao).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "main": ".open-next/worker.js",
@@ -14,11 +13,11 @@
   "env": {
     "teste": {
       "name": "estoque-cirurgico-teste",
-      "vars": { "APP_ENV": "teste", "BETTER_AUTH_URL": "https://estoque-cirurgico-teste.SEU-SUBDOMINIO.workers.dev" }
+      "vars": { "APP_ENV": "teste" }
     },
     "producao": {
       "name": "estoque-cirurgico",
-      "vars": { "APP_ENV": "producao", "BETTER_AUTH_URL": "https://estoque.SUA-CLINICA.com.br" }
+      "vars": { "APP_ENV": "producao" }
     }
   }
 }
