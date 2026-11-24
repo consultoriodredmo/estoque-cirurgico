@@ -76,23 +76,68 @@ jobs:
         if: steps.config.outputs.pronto == 'sim'
         run: npm run cf:build
 
+      - name: Limpar e conferir a chave da Cloudflare
+        if: steps.config.outputs.pronto == 'sim'
+        env:
+          BRUTO: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CONTA_BRUTA: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Segredos colados com quebras de linha ou espaços são comuns: limpa.
+          token="$(printf '%s' "$BRUTO" | tr -d '[:space:]')"
+          if ! printf '%s' "$token" | grep -Eq '^[A-Za-z0-9_-]{30,80}$'; then
+            # Se colaram o comando de exemplo da Cloudflare, pega o que vem depois de "Bearer".
+            token="$(printf '%s' "$BRUTO" | grep -oE 'Bearer[[:space:]]+[A-Za-z0-9_-]{30,80}' | head -1 | awk '{print $2}')"
+          fi
+          if [ -z "$token" ]; then
+            echo "::error::O segredo CLOUDFLARE_API_TOKEN não parece uma chave da Cloudflare (deve ser uma única palavra de letras e números). Crie uma chave nova e cole só ela."
+            exit 1
+          fi
+          conta="$(printf '%s' "$CONTA_BRUTA" | tr -d '[:space:]')"
+          if ! printf '%s' "$conta" | grep -Eq '^[0-9a-f]{32}$'; then
+            echo "::error::O segredo CLOUDFLARE_ACCOUNT_ID deve ter 32 letras e números (0-9, a-f)."
+            exit 1
+          fi
+          echo "::add-mask::$token"
+          resposta="$(curl -s -H "Authorization: Bearer $token" "https://api.cloudflare.com/client/v4/accounts/$conta/tokens/verify")"
+          if ! printf '%s' "$resposta" | grep -q '"success":true'; then
+            resposta="$(curl -s -H "Authorization: Bearer $token" "https://api.cloudflare.com/client/v4/user/tokens/verify")"
+          fi
+          if ! printf '%s' "$resposta" | grep -q '"success":true'; then
+            echo "::error::A Cloudflare recusou a chave (CLOUDFLARE_API_TOKEN). Confira se foi copiada inteira ou crie outra."
+            exit 1
+          fi
+          echo "Chave da Cloudflare válida."
+          {
+            echo "CLOUDFLARE_API_TOKEN=$token"
+            echo "CLOUDFLARE_ACCOUNT_ID=$conta"
+          } >> "$GITHUB_ENV"
+
       - name: Publicar e enviar segredos
         if: steps.config.outputs.pronto == 'sim'
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           DATABASE_URL: ${{ secrets.TESTE_DATABASE_URL_TRANSACAO }}
           BETTER_AUTH_SECRET: ${{ secrets.TESTE_AUTH_SECRET }}
           BETTER_AUTH_URL: ${{ secrets.TESTE_APP_URL }}
         run: |
           npx opennextjs-cloudflare deploy --env teste
-          node -e 'console.log(JSON.stringify({DATABASE_URL:process.env.DATABASE_URL,BETTER_AUTH_SECRET:process.env.BETTER_AUTH_SECRET,BETTER_AUTH_URL:process.env.BETTER_AUTH_URL}))' \
-            | npx wrangler secret bulk --env teste
+          node -e '
+            const t = (v) => (v || "").trim();
+            console.log(JSON.stringify({
+              DATABASE_URL: t(process.env.DATABASE_URL),
+              BETTER_AUTH_SECRET: t(process.env.BETTER_AUTH_SECRET),
+              BETTER_AUTH_URL: t(process.env.BETTER_AUTH_URL).replace(/\/$/, ""),
+            }));' | npx wrangler secret bulk --env teste
 
       - name: Conferir se o sistema respondeu
         if: steps.config.outputs.pronto == 'sim'
         env:
           URL: ${{ secrets.TESTE_APP_URL }}
         run: |
-          sleep 10
-          curl -fsS "$URL/api/saude"
+          url="$(printf '%s' "$URL" | tr -d '[:space:]')"
+          url="${url%/}"
+          for i in 1 2 3 4 5 6; do
+            sleep 10
+            if curl -fsS "$url/api/saude"; then echo; echo "Sistema no ar: $url"; exit 0; fi
+          done
+          echo "::error::O sistema não respondeu em $url/api/saude"
+          exit 1
