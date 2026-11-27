@@ -4,7 +4,7 @@
  * Registra o status e o corpo de cada chamada de /api/auth (sem senhas).
  */
 import "dotenv/config";
-import { chromium, devices } from "playwright";
+import { chromium, devices, webkit } from "playwright";
 import { comBanco } from "../src/db/client";
 import { criarAuth } from "../src/lib/auth";
 import { lerEnvServidor } from "../src/lib/env";
@@ -22,7 +22,9 @@ async function main() {
     await criarUsuarioDireto(auth, { nome: "Diagnóstico navegador", email, perfil: "hospital", senha: temp });
   });
 
-  const browser = await chromium.launch();
+  const motor = process.env.MOTOR === "webkit" ? webkit : chromium;
+  console.log("motor:", process.env.MOTOR ?? "chromium");
+  const browser = await motor.launch();
   const ctx = await browser.newContext({ ...devices["iPhone 13"] });
   const page = await ctx.newPage();
   page.on("response", async (r) => {
