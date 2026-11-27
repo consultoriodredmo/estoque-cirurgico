@@ -27,3 +27,10 @@ jobs:
         run: |
           export BETTER_AUTH_URL="$(printf '%s' "$BETTER_AUTH_URL" | tr -d '[:space:]')"
           npx tsx scripts/diagnostico-login.ts
+      - name: Estado do administrador
+        env:
+          DATABASE_URL: ${{ secrets.TESTE_DATABASE_URL_SESSAO }}
+          APP_ENV: teste
+          BETTER_AUTH_SECRET: ${{ secrets.TESTE_AUTH_SECRET }}
+          BETTER_AUTH_URL: https://exemplo.invalid
+        run: npx tsx scripts/diagnostico-usuario.ts
