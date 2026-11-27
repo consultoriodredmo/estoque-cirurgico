@@ -34,3 +34,14 @@ jobs:
           BETTER_AUTH_SECRET: ${{ secrets.TESTE_AUTH_SECRET }}
           BETTER_AUTH_URL: https://exemplo.invalid
         run: npx tsx scripts/diagnostico-usuario.ts
+      - name: Primeiro acesso com navegador de verdade
+        env:
+          DATABASE_URL: ${{ secrets.TESTE_DATABASE_URL_SESSAO }}
+          APP_ENV: teste
+          BETTER_AUTH_SECRET: ${{ secrets.TESTE_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ secrets.TESTE_APP_URL }}
+        run: |
+          export BETTER_AUTH_URL="$(printf '%s' "$BETTER_AUTH_URL" | tr -d '[:space:]')"
+          npm i --no-save playwright@1
+          npx playwright install --with-deps chromium
+          npx tsx scripts/diagnostico-navegador.ts
