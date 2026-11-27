@@ -18,6 +18,13 @@ export function mensagemErro(erro: { status?: number; message?: string; code?: s
   if (erro.code === "INVALID_CODE" || erro.code === "INVALID_BACKUP_CODE")
     return "Código incorreto. Confira no aplicativo e tente de novo.";
   if (erro.code === "INVALID_TWO_FACTOR_COOKIE") return "O tempo para digitar o código acabou. Entre de novo.";
+  if (erro.status === 401 && erro.code === "UNAUTHORIZED")
+    return "Sua sessão terminou neste navegador. Entre de novo com o e-mail e a senha nova.";
   if (erro.status === 401) return "Não foi possível confirmar. Confira os dados e tente de novo.";
   return "Algo deu errado. Tente de novo em instantes.";
+}
+
+/** Sessão perdida (ex.: o navegador do aplicativo apagou os cookies). */
+export function sessaoPerdida(erro: { status?: number; code?: string } | null): boolean {
+  return erro?.status === 401 && erro.code === "UNAUTHORIZED";
 }

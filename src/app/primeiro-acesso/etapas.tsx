@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { useState } from "react";
 import { Aviso, Botao, Campo } from "@/components/ui";
-import { authCliente, mensagemErro } from "@/lib/auth-cliente";
+import { authCliente, mensagemErro, sessaoPerdida } from "@/lib/auth-cliente";
 
 export function EtapaSenha({ nome }: { nome: string }) {
   const router = useRouter();
@@ -23,6 +23,7 @@ export function EtapaSenha({ nome }: { nome: string }) {
       revokeOtherSessions: true,
     });
     if (error) {
+      if (sessaoPerdida(error)) return router.push("/entrar?erro=sessao");
       setErro(mensagemErro(error));
       setEnviando(false);
       return;
@@ -60,6 +61,7 @@ export function EtapaCodigo() {
     setEnviando(true);
     const { data, error } = await authCliente.twoFactor.enable({ password: String(form.get("senha") ?? "") });
     setEnviando(false);
+    if (sessaoPerdida(error)) return router.push("/entrar?erro=sessao");
     if (error || !data || data.method !== "totp") return setErro(mensagemErro(error));
     const segredo = new URL(data.totpURI).searchParams.get("secret") ?? "";
     setPreparo({ qr: await QRCode.toDataURL(data.totpURI, { margin: 1, width: 220 }), segredo, recuperacao: data.backupCodes });
@@ -72,6 +74,7 @@ export function EtapaCodigo() {
       code: String(form.get("codigo") ?? "").replace(/\s/g, ""),
     });
     if (error) {
+      if (sessaoPerdida(error)) return router.push("/entrar?erro=sessao");
       setErro(mensagemErro(error));
       setEnviando(false);
       return;
