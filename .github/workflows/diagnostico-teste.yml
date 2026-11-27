@@ -42,7 +42,6 @@ jobs:
           BETTER_AUTH_URL: ${{ secrets.TESTE_APP_URL }}
         run: |
           export BETTER_AUTH_URL="$(printf '%s' "$BETTER_AUTH_URL" | tr -d '[:space:]')"
-          npm i --no-save playwright@1
           npx playwright install --with-deps chromium webkit
           npx tsx scripts/diagnostico-navegador.ts
           MOTOR=webkit npx tsx scripts/diagnostico-navegador.ts
