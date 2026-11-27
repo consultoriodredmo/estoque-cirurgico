@@ -1,0 +1,29 @@
+# Diagnóstico do login no ambiente de teste (disparar à mão).
+name: Diagnóstico do login (teste)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Percorrer o primeiro acesso contra o sistema publicado
+        env:
+          DATABASE_URL: ${{ secrets.TESTE_DATABASE_URL_SESSAO }}
+          APP_ENV: teste
+          BETTER_AUTH_SECRET: ${{ secrets.TESTE_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ secrets.TESTE_APP_URL }}
+        run: |
+          export BETTER_AUTH_URL="$(printf '%s' "$BETTER_AUTH_URL" | tr -d '[:space:]')"
+          npx tsx scripts/diagnostico-login.ts
