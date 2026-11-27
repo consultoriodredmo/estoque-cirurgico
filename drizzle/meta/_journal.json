@@ -50,6 +50,20 @@
       "when": 1795424265241,
       "tag": "0006_catalogo_referencias",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795820305626,
+      "tag": "0007_estoque",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795820306382,
+      "tag": "0008_estoque_travas",
+      "breakpoints": true
     }
   ]
 }

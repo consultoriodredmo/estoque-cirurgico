@@ -3,7 +3,7 @@
 Sistema web de gestão de estoque de materiais cirúrgicos da clínica.
 Plano completo e decisões: documento "Estoque Cirúrgico — Arquitetura e Plano de Execução".
 
-**Situação:** etapas 1.1 (fundação), 1.2 (login e perfis) e 1.3 (produtos, tamanhos e fornecedores) concluídas. Ainda não há saldo de estoque.
+**Situação:** etapas 1.1 (fundação), 1.2 (login e perfis), 1.3 (produtos, tamanhos e fornecedores) e 1.4 (saldos por local e livro de movimentações) concluídas.
 
 ## Tecnologia
 
@@ -70,6 +70,16 @@ Os testes recriam do zero o banco indicado em `TEST_DATABASE_URL`
 - **Nada é apagado:** produtos, tamanhos e fornecedores são desativados, e o banco recusa exclusões.
 - **A Eliadna** vê produtos, tamanhos e fornecedores, mas nenhum valor, e não edita nada.
 - **Toda alteração** fica na auditoria com o valor anterior e o novo.
+
+## Estoque (etapa 1.4)
+
+- **Três locais:** consultório, farmácia do hospital e armário privativo. Saldo por tamanho em cada um.
+- **Livro de movimentações:** cada lançamento (carga inicial, ajuste por contagem ou estorno) tem motivo, usuário e hora, e guarda o saldo depois de cada linha. O banco recusa alterar ou apagar lançamentos.
+- **Saldo só pelo livro:** quem atualiza o saldo é o próprio banco, ao gravar a movimentação. Uma alteração direta no saldo é recusada.
+- **Contagem:** digita-se o contado; o sistema lança só a diferença. Saldo negativo é recusado. Enviar o mesmo formulário duas vezes não duplica.
+- **Estorno:** cria um lançamento com as quantidades invertidas. Não se estorna duas vezes nem se estorna um estorno.
+- **Custo médio ponderado** por tamanho, somando os três locais. Só muda quando entra quantidade com custo informado.
+- **A Mariana** ajusta sem aprovação (decisão 5), sempre com registro. **A Eliadna** vê as quantidades, mas não valores, e não ajusta.
 
 ## Estrutura
 

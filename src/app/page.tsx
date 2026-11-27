@@ -9,7 +9,7 @@ type Modulo = { titulo: string; descricao: string; acoes: Acao[]; href?: string;
 const MODULOS: Modulo[] = [
   { titulo: "Usuários", descricao: "Criar contas, perfis e redefinir acessos", acoes: ["usuarios:gerir"], href: "/usuarios" },
   { titulo: "Produtos e fornecedores", descricao: "Materiais, tamanhos e fornecedores", acoes: ["produtos:ver"], href: "/produtos" },
-  { titulo: "Estoque por local", descricao: "Consultório, farmácia e armário", acoes: ["estoque:ver"], quando: "Etapa 1.4" },
+  { titulo: "Estoque por local", descricao: "Consultório, farmácia e armário", acoes: ["estoque:ver"], href: "/estoque" },
   { titulo: "Cirurgias e consumo", descricao: "Materiais previstos e confirmação", acoes: ["cirurgias:ver"], quando: "Fase 2" },
   {
     titulo: "Segunda-feira",

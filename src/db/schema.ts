@@ -8,7 +8,9 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -309,3 +311,84 @@ export const historicoPrecos = pgTable(
   },
   (t) => [index("historico_precos_fp_idx").on(t.fornecedorProdutoId, t.em)],
 );
+
+// ---------------------------------------------------------------------------
+// Estoque (etapa 1.4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Lançamento = um documento que mexe no estoque (carga inicial, ajuste por
+ * contagem, estorno; nas próximas fases: consumo, transferência, compra).
+ * O id vem da tela: enviar o mesmo formulário duas vezes não duplica nada.
+ * Só inclusão.
+ */
+export const lancamentos = pgTable(
+  "lancamentos",
+  {
+    id: text("id").primaryKey(),
+    tipo: text("tipo").notNull(),
+    local: text("local").references(() => locais.codigo),
+    motivo: text("motivo").notNull(),
+    usuarioId: text("usuario_id").notNull(),
+    em: timestamp("em", { withTimezone: true }).notNull().defaultNow(),
+    estornoDe: text("estorno_de").unique(),
+  },
+  (t) => [
+    check("lancamentos_tipo", sql`${t.tipo} in ('implantacao', 'ajuste', 'estorno')`),
+    index("lancamentos_em_idx").on(t.em),
+  ],
+);
+
+/**
+ * Livro de movimentações: cada linha muda o saldo de um tamanho num local.
+ * Quantidade com sinal (+ entrada, − saída). Só inclusão: corrige-se por estorno.
+ */
+export const movimentacoes = pgTable(
+  "movimentacoes",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    lancamentoId: text("lancamento_id")
+      .notNull()
+      .references(() => lancamentos.id),
+    varianteId: bigint("variante_id", { mode: "number" })
+      .notNull()
+      .references(() => variantes.id),
+    local: text("local")
+      .notNull()
+      .references(() => locais.codigo),
+    quantidade: integer("quantidade").notNull(),
+    saldoApos: integer("saldo_apos").notNull(),
+    /** Custo unitário (centavos) desta entrada, quando informado. */
+    custoUnitario: numeric("custo_unitario", { precision: 14, scale: 4 }),
+    em: timestamp("em", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check("movimentacoes_quantidade_nao_zero", sql`${t.quantidade} <> 0`),
+    index("movimentacoes_variante_local_idx").on(t.varianteId, t.local),
+    index("movimentacoes_lancamento_idx").on(t.lancamentoId),
+  ],
+);
+
+/** Saldo atual por tamanho e local. Mantido na mesma transação do livro. */
+export const saldos = pgTable(
+  "saldos",
+  {
+    varianteId: bigint("variante_id", { mode: "number" })
+      .notNull()
+      .references(() => variantes.id),
+    local: text("local")
+      .notNull()
+      .references(() => locais.codigo),
+    quantidade: integer("quantidade").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.varianteId, t.local] })],
+);
+
+/** Custo médio ponderado por tamanho, somando os três locais (decisão 7). Centavos. */
+export const custosMedios = pgTable("custos_medios", {
+  varianteId: bigint("variante_id", { mode: "number" })
+    .primaryKey()
+    .references(() => variantes.id),
+  custo: numeric("custo", { precision: 14, scale: 4 }).notNull(),
+  atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
+});
