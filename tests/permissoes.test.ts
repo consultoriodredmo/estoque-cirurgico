@@ -7,6 +7,7 @@ import { ACOES, pode, type Acao } from "@/lib/permissoes";
  */
 const TABELA: [Acao, boolean, boolean, boolean][] = [
   ["cirurgias:ver", true, true, true],
+  ["cirurgias:editar", false, true, true],
   ["consumo:confirmar", true, false, true],
   ["contagem:registrar", true, false, true],
   ["transferencia:receber", true, false, true],

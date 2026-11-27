@@ -10,7 +10,7 @@ const MODULOS: Modulo[] = [
   { titulo: "Usuários", descricao: "Criar contas, perfis e redefinir acessos", acoes: ["usuarios:gerir"], href: "/usuarios" },
   { titulo: "Produtos e fornecedores", descricao: "Materiais, tamanhos e fornecedores", acoes: ["produtos:ver"], href: "/produtos" },
   { titulo: "Estoque por local", descricao: "Consultório, farmácia e armário", acoes: ["estoque:ver"], href: "/estoque" },
-  { titulo: "Cirurgias e consumo", descricao: "Materiais previstos e confirmação", acoes: ["cirurgias:ver"], quando: "Fase 2" },
+  { titulo: "Cirurgias", descricao: "Agenda da semana, materiais e consumo", acoes: ["cirurgias:ver"], href: "/cirurgias" },
   {
     titulo: "Segunda-feira",
     descricao: "Conferência e reposição",

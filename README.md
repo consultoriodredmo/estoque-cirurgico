@@ -3,7 +3,7 @@
 Sistema web de gestão de estoque de materiais cirúrgicos da clínica.
 Plano completo e decisões: documento "Estoque Cirúrgico — Arquitetura e Plano de Execução".
 
-**Situação:** etapas 1.1 (fundação), 1.2 (login e perfis), 1.3 (produtos, tamanhos e fornecedores) e 1.4 (saldos por local e livro de movimentações) concluídas.
+**Situação:** etapas 1.1 (fundação), 1.2 (login e perfis), 1.3 (produtos, tamanhos e fornecedores) 1.4 (saldos por local e livro de movimentações) e 2.1 (cadastro manual de cirurgias) concluídas.
 
 ## Tecnologia
 
@@ -80,6 +80,14 @@ Os testes recriam do zero o banco indicado em `TEST_DATABASE_URL`
 - **Estorno:** cria um lançamento com as quantidades invertidas. Não se estorna duas vezes nem se estorna um estorno.
 - **Custo médio ponderado** por tamanho, somando os três locais. Só muda quando entra quantidade com custo informado.
 - **A Mariana** ajusta sem aprovação (decisão 5), sempre com registro. **A Eliadna** vê as quantidades, mas não valores, e não ajusta.
+
+## Cirurgias (etapa 2.1)
+
+- **Cadastro manual** até a integração com o calendário (Fase 5): paciente (nome completo), data, hora opcional, procedimentos, tecnologias, tamanho do chinelo e observação operacional.
+- **Quem cadastra:** administrador e compras. O hospital consulta.
+- **Procedimentos e tecnologias** são cadastráveis pelo administrador e nunca apagados; o código de cada um não muda, porque as regras de kit dependem dele.
+- **Cancelar, não apagar:** cancela-se com motivo e dá para reativar. Depois do consumo confirmado (etapa 2.3), a cirurgia não muda mais.
+- **LGPD:** a auditoria registra data, procedimentos e o id da cirurgia, nunca o nome da paciente.
 
 ## Estrutura
 

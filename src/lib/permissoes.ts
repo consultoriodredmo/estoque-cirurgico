@@ -14,6 +14,7 @@ export const NOME_PERFIL: Record<Perfil, string> = {
 
 export const ACOES = [
   "cirurgias:ver",
+  "cirurgias:editar",
   "consumo:confirmar",
   "contagem:registrar",
   "transferencia:receber",
@@ -39,6 +40,7 @@ const MATRIZ: Record<Perfil, ReadonlySet<Acao>> = {
   administrador: new Set(ACOES),
   compras: new Set<Acao>([
     "cirurgias:ver",
+    "cirurgias:editar", // cadastro manual até a integração com o calendário (Fase 5)
     "produtos:ver",
     "produtos:editar",
     "fornecedores:editar",

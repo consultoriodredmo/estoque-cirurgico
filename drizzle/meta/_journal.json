@@ -64,6 +64,20 @@
       "when": 1795820306382,
       "tag": "0008_estoque_travas",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795821396305,
+      "tag": "0009_cirurgias",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795821404250,
+      "tag": "0010_cirurgias_travas",
+      "breakpoints": true
     }
   ]
 }

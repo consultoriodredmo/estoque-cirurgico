@@ -5,6 +5,7 @@ import {
   bigserial,
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -12,6 +13,7 @@ import {
   pgTable,
   primaryKey,
   text,
+  time,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -392,3 +394,62 @@ export const custosMedios = pgTable("custos_medios", {
   custo: numeric("custo", { precision: 14, scale: 4 }).notNull(),
   atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Cirurgias (Fase 2). Dados da paciente: só o nome completo (decisão 3), sem
+// informação clínica. A auditoria registra o id da cirurgia, nunca o nome.
+// ---------------------------------------------------------------------------
+
+/** Procedimentos e tecnologias que as regras de kit usam. Cadastráveis pelo administrador. */
+export const procedimentos = pgTable(
+  "procedimentos",
+  {
+    codigo: text("codigo").primaryKey(),
+    nome: text("nome").notNull().unique(),
+    /** procedimento | tecnologia */
+    tipo: text("tipo").notNull(),
+    ordem: integer("ordem").notNull().default(0),
+    ativo: boolean("ativo").notNull().default(true),
+  },
+  (t) => [check("procedimentos_tipo", sql`${t.tipo} in ('procedimento', 'tecnologia')`)],
+);
+
+export const cirurgias = pgTable(
+  "cirurgias",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    paciente: text("paciente").notNull(),
+    data: date("data", { mode: "string" }).notNull(),
+    hora: time("hora"),
+    /** agendada | cancelada (a etapa 2.3 acrescenta "consumo confirmado"). */
+    situacao: text("situacao").notNull().default("agendada"),
+    /** Tamanho de chinelo informado (variante do produto chinelo), quando houver. */
+    chineloVarianteId: bigint("chinelo_variante_id", { mode: "number" }).references(() => variantes.id),
+    observacao: text("observacao"),
+    /** manual | icloud (Fase 5). */
+    origem: text("origem").notNull().default("manual"),
+    /** UID do evento no calendário: impede duplicar na reimportação (Fase 5). */
+    uidEvento: text("uid_evento").unique(),
+    criadoPor: text("criado_por").notNull(),
+    criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+    atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check("cirurgias_situacao", sql`${t.situacao} in ('agendada', 'cancelada', 'consumo_confirmado')`),
+    check("cirurgias_origem", sql`${t.origem} in ('manual', 'icloud')`),
+    index("cirurgias_data_idx").on(t.data),
+  ],
+);
+
+export const cirurgiaProcedimentos = pgTable(
+  "cirurgia_procedimentos",
+  {
+    cirurgiaId: bigint("cirurgia_id", { mode: "number" })
+      .notNull()
+      .references(() => cirurgias.id),
+    procedimento: text("procedimento")
+      .notNull()
+      .references(() => procedimentos.codigo),
+  },
+  (t) => [primaryKey({ columns: [t.cirurgiaId, t.procedimento] })],
+);
