@@ -3,6 +3,9 @@ import { Cartao } from "@/components/ui";
 import { Pagina, Selo } from "@/components/pagina";
 import { listarProcedimentos, NOME_SITUACAO, obterCirurgia, tamanhosDeChinelo } from "@/lib/cirurgias";
 import { pode } from "@/lib/permissoes";
+import { previsaoDaCirurgia } from "@/lib/regras";
+import { ListaPrevisao } from "@/components/previsao";
+import Link from "next/link";
 import { comAuth, exigirPermissao } from "@/lib/sessao";
 import { FormularioCirurgia } from "../formulario";
 import { CancelarOuReativar } from "./situacao";
@@ -19,6 +22,7 @@ export default async function DetalheCirurgia({ params }: { params: Promise<{ id
     Promise.all([obterCirurgia(db, ator, id), edita ? listarProcedimentos(db) : [], edita ? tamanhosDeChinelo(db) : []]),
   );
   if (!c) notFound();
+  const previsao = await comAuth((_, db) => previsaoDaCirurgia(db, ator, id));
   const editavel = edita && c.situacao === "agendada";
 
   return (
@@ -40,9 +44,17 @@ export default async function DetalheCirurgia({ params }: { params: Promise<{ id
         {c.observacao && <p className="text-neutral-600">{c.observacao}</p>}
       </Cartao>
 
-      <Cartao className="text-sm text-neutral-600">
-        <p className="font-semibold text-neutral-900">Materiais previstos</p>
-        <p className="mt-1">A previsão automática pelos procedimentos chega na etapa 2.2, e a confirmação do consumo na 2.3.</p>
+      <Cartao className="flex flex-col gap-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="font-semibold">Materiais previstos</p>
+          <Link href="/cirurgias/regras" className="text-xs text-neutral-500 underline">
+            Ver regras
+          </Link>
+        </div>
+        <ListaPrevisao previsao={previsao} />
+        <p className="text-xs text-neutral-500">
+          Previsão não baixa estoque. As quantidades e os tamanhos reais são informados na confirmação do consumo (etapa 2.3).
+        </p>
       </Cartao>
 
       {editavel && (

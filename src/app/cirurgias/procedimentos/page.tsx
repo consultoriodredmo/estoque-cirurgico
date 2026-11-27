@@ -7,7 +7,7 @@ export default async function Procedimentos() {
   const usuario = await exigirPermissao("regras:editar");
   const lista = await comAuth((_, db) => listarProcedimentos(db, true));
   return (
-    <Pagina usuario={usuario} titulo="Procedimentos e tecnologias" voltar={{ href: "/cirurgias", rotulo: "Cirurgias" }}>
+    <Pagina usuario={usuario} titulo="Procedimentos e tecnologias" voltar={{ href: "/cirurgias/regras", rotulo: "Regras" }}>
       <p className="text-sm text-neutral-600">
         São as opções marcadas em cada cirurgia; as regras de kit (etapa 2.2) partem delas. Um procedimento não se apaga, só se desativa.
       </p>
@@ -17,6 +17,7 @@ export default async function Procedimentos() {
             <span className="flex items-center gap-2">
               {p.nome}
               {p.tipo === "tecnologia" && <Selo cor="azul">Tecnologia</Selo>}
+              {p.tipo === "complemento" && <Selo cor="verde">Complemento</Selo>}
               {!p.ativo && <Selo cor="vermelho">Desativado</Selo>}
             </span>
             <AlternarProcedimento codigo={p.codigo} ativo={p.ativo} />

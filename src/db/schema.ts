@@ -406,12 +406,12 @@ export const procedimentos = pgTable(
   {
     codigo: text("codigo").primaryKey(),
     nome: text("nome").notNull().unique(),
-    /** procedimento | tecnologia */
+    /** procedimento | complemento (ex.: lipo axilar) | tecnologia (ex.: Renuvion) */
     tipo: text("tipo").notNull(),
     ordem: integer("ordem").notNull().default(0),
     ativo: boolean("ativo").notNull().default(true),
   },
-  (t) => [check("procedimentos_tipo", sql`${t.tipo} in ('procedimento', 'tecnologia')`)],
+  (t) => [check("procedimentos_tipo", sql`${t.tipo} in ('procedimento', 'complemento', 'tecnologia')`)],
 );
 
 export const cirurgias = pgTable(
@@ -452,4 +452,48 @@ export const cirurgiaProcedimentos = pgTable(
       .references(() => procedimentos.codigo),
   },
   (t) => [primaryKey({ columns: [t.cirurgiaId, t.procedimento] })],
+);
+
+// ---------------------------------------------------------------------------
+// Regras de kit (etapa 2.2). Em cada grupo vale só a regra de maior prioridade
+// que combinar com a cirurgia: assim nada é somado em dobro.
+// ---------------------------------------------------------------------------
+
+export const regrasKit = pgTable(
+  "regras_kit",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    grupo: text("grupo").notNull(),
+    descricao: text("descricao").notNull(),
+    /** Procedimentos que precisam estar TODOS marcados. */
+    todos: text("todos").array().notNull().default(sql`'{}'::text[]`),
+    /** Basta UM destes (lista vazia = não exige). */
+    algum: text("algum").array().notNull().default(sql`'{}'::text[]`),
+    /** NENHUM destes pode estar marcado. */
+    nenhum: text("nenhum").array().notNull().default(sql`'{}'::text[]`),
+    /** true = a cirurgia não pode ter outro PROCEDIMENTO além dos citados (complementos e tecnologias não contam). */
+    somente: boolean("somente").notNull().default(false),
+    prioridade: integer("prioridade").notNull().default(0),
+    /** Quantidade ainda a confirmar pela equipe (aparece como "provisória"). */
+    provisoria: boolean("provisoria").notNull().default(false),
+    ativo: boolean("ativo").notNull().default(true),
+    criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+    atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("regras_kit_grupo_idx").on(t.grupo)],
+);
+
+/** Itens previstos por uma regra. Regra sem itens = "não usa nada deste grupo". */
+export const regraItens = pgTable(
+  "regra_itens",
+  {
+    regraId: bigint("regra_id", { mode: "number" })
+      .notNull()
+      .references(() => regrasKit.id),
+    produtoId: bigint("produto_id", { mode: "number" })
+      .notNull()
+      .references(() => produtos.id),
+    quantidade: integer("quantidade").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.regraId, t.produtoId] }), check("regra_itens_quantidade", sql`${t.quantidade} > 0`)],
 );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Pagina, Selo } from "@/components/pagina";
 import { hojeSP, listarCirurgias, NOME_SITUACAO, semanaDe, somarDias } from "@/lib/cirurgias";
 import { pode } from "@/lib/permissoes";
+import { pendenciasPorCirurgia } from "@/lib/regras";
 import { comAuth, exigirPermissao } from "@/lib/sessao";
 
 const DIA = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "UTC" });
@@ -16,6 +17,7 @@ export default async function Cirurgias({ searchParams }: { searchParams: Promis
   const base = param && /^\d{4}-\d{2}-\d{2}$/.test(param) ? param : hoje;
   const { inicio, fim } = semanaDe(base);
   const lista = await comAuth((_, db) => listarCirurgias(db, ator, { de: inicio, ate: fim }));
+  const pendencias = await comAuth((_, db) => pendenciasPorCirurgia(db, lista.filter((c) => c.situacao === "agendada").map((c) => c.id)));
   const dias = [...new Set(lista.map((c) => c.data))];
   const edita = pode(usuario.perfil, "cirurgias:editar");
   const ehEstaSemana = semanaDe(hoje).inicio === inicio;
@@ -27,11 +29,9 @@ export default async function Cirurgias({ searchParams }: { searchParams: Promis
       voltar={{ href: "/", rotulo: "Início" }}
       acoes={
         <div className="flex gap-2 text-sm">
-          {pode(usuario.perfil, "regras:editar") && (
-            <Link href="/cirurgias/procedimentos" className="rounded-lg border border-neutral-300 bg-white px-3 py-2 font-semibold">
-              Procedimentos
-            </Link>
-          )}
+          <Link href="/cirurgias/regras" className="rounded-lg border border-neutral-300 bg-white px-3 py-2 font-semibold">
+            Regras
+          </Link>
           {edita && (
             <Link href={`/cirurgias/nova${ehEstaSemana ? "" : `?data=${inicio}`}`} className="rounded-lg bg-neutral-900 px-3 py-2 font-semibold text-white">
               Nova cirurgia
@@ -86,6 +86,11 @@ export default async function Cirurgias({ searchParams }: { searchParams: Promis
                       )}
                     </div>
                     <span className="text-sm text-neutral-600">{c.procedimentos.map((p) => p.nome).join(" + ")}</span>
+                    {(pendencias.get(c.id) ?? 0) > 0 && (
+                      <span className="self-start">
+                        <Selo cor="ambar">Regra pendente</Selo>
+                      </span>
+                    )}
                   </Link>
                 </li>
               ))}

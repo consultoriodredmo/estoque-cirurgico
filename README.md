@@ -3,7 +3,7 @@
 Sistema web de gestão de estoque de materiais cirúrgicos da clínica.
 Plano completo e decisões: documento "Estoque Cirúrgico — Arquitetura e Plano de Execução".
 
-**Situação:** etapas 1.1 (fundação), 1.2 (login e perfis), 1.3 (produtos, tamanhos e fornecedores) 1.4 (saldos por local e livro de movimentações) e 2.1 (cadastro manual de cirurgias) concluídas.
+**Situação:** etapas 1.1 (fundação), 1.2 (login e perfis), 1.3 (produtos, tamanhos e fornecedores) 1.4 (saldos por local e livro de movimentações) 2.1 (cadastro manual de cirurgias) e 2.2 (regras de kit e materiais previstos) concluídas.
 
 ## Tecnologia
 
@@ -88,6 +88,16 @@ Os testes recriam do zero o banco indicado em `TEST_DATABASE_URL`
 - **Procedimentos e tecnologias** são cadastráveis pelo administrador e nunca apagados; o código de cada um não muda, porque as regras de kit dependem dele.
 - **Cancelar, não apagar:** cancela-se com motivo e dá para reativar. Depois do consumo confirmado (etapa 2.3), a cirurgia não muda mais.
 - **LGPD:** a auditoria registra data, procedimentos e o id da cirurgia, nunca o nome da paciente.
+
+## Regras de kit (etapa 2.2)
+
+- **Motor puro** em `src/lib/regras/motor.ts`. Cada regra pertence a um grupo (kit vibrolipo, Viaro, cânula azul, Renuvion, cola, peças compressivas, meia, acolhimento). Em cada grupo vale só uma regra por cirurgia: a de maior prioridade que combinar; no empate, a mais específica. Nada é somado em dobro.
+- **Condições:** exige todos; exige pelo menos um; nenhum destes; "somente estes" (cirurgia isolada — complementos e tecnologias não contam).
+- **Pendência em vez de chute:** nos grupos de cola e peças compressivas, combinação sem regra aparece como "regra pendente". Duas regras igualmente fortes e diferentes também viram pendência (conflito).
+- **Regras iniciais** (`REGRAS_INICIAIS`): especificação + respostas do Edmo de 23 e 27/11/2026. Carregadas por `npm run catalogo:carga` só se a tabela estiver vazia.
+- **Quantidade provisória** aparece como "a confirmar" (ex.: cola na abdominoplastia isolada).
+- **Previsão não baixa estoque.** Sutiã, cinta e meia saem sem tamanho; o chinelo usa o tamanho informado na cirurgia.
+- **Edição:** só o administrador cria, altera e desativa regras; nada se apaga; tudo vai para a auditoria. A tela tem um simulador.
 
 ## Estrutura
 

@@ -78,6 +78,20 @@
       "when": 1795821404250,
       "tag": "0010_cirurgias_travas",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795823324474,
+      "tag": "0011_regras_kit",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795823328836,
+      "tag": "0012_procedimentos_e_regras",
+      "breakpoints": true
     }
   ]
 }

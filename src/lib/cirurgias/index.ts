@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, ilike, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, gte, ilike, inArray, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { registrarAuditoria } from "@/db/auditoria";
 import type { Db, Executor } from "@/db/client";
@@ -53,12 +53,14 @@ export function semanaDe(data: string): { inicio: string; fim: string } {
 // Procedimentos
 // ---------------------------------------------------------------------------
 
+const ORDEM_TIPO = sql`case ${procedimentos.tipo} when 'procedimento' then 0 when 'complemento' then 1 else 2 end`;
+
 export async function listarProcedimentos(db: Db, incluirInativos = false) {
   return db
     .select()
     .from(procedimentos)
     .where(incluirInativos ? undefined : eq(procedimentos.ativo, true))
-    .orderBy(asc(procedimentos.tipo), asc(procedimentos.ordem), asc(procedimentos.nome));
+    .orderBy(ORDEM_TIPO, asc(procedimentos.ordem), asc(procedimentos.nome));
 }
 
 function paraCodigo(nome: string): string {
@@ -73,7 +75,7 @@ function paraCodigo(nome: string): string {
 
 const esquemaProcedimento = z.object({
   nome: z.string().trim().min(3, "Informe o nome do procedimento.").max(80),
-  tipo: z.enum(["procedimento", "tecnologia"], { error: "Escolha procedimento ou tecnologia." }),
+  tipo: z.enum(["procedimento", "complemento", "tecnologia"], { error: "Escolha o tipo." }),
 });
 
 export async function criarProcedimento(db: Db, ator: Ator, dados: unknown): Promise<string> {
@@ -139,10 +141,13 @@ const esquemaCirurgia = z.object({
 async function conferirReferencias(db: Db, c: z.infer<typeof esquemaCirurgia>) {
   const codigos = [...new Set(c.procedimentos)];
   const ativos = await db
-    .select({ codigo: procedimentos.codigo })
+    .select({ codigo: procedimentos.codigo, tipo: procedimentos.tipo })
     .from(procedimentos)
     .where(and(inArray(procedimentos.codigo, codigos), eq(procedimentos.ativo, true)));
   if (ativos.length !== codigos.length) throw new ErroCatalogo("Algum procedimento marcado não existe ou foi desativado.");
+  if (!ativos.some((a) => a.tipo === "procedimento")) {
+    throw new ErroCatalogo("Marque pelo menos um procedimento (complementos e tecnologias acompanham um procedimento).");
+  }
   if (c.chineloVarianteId != null) {
     const [v] = await db
       .select({ id: variantes.id })
@@ -294,7 +299,7 @@ async function montar(db: Db, linhas: (typeof cirurgias.$inferSelect & { chinelo
     .from(cirurgiaProcedimentos)
     .innerJoin(procedimentos, eq(procedimentos.codigo, cirurgiaProcedimentos.procedimento))
     .where(inArray(cirurgiaProcedimentos.cirurgiaId, linhas.map((l) => l.id)))
-    .orderBy(asc(procedimentos.tipo), asc(procedimentos.ordem));
+    .orderBy(ORDEM_TIPO, asc(procedimentos.ordem));
   return linhas.map((l) => ({
     id: l.id,
     paciente: l.paciente,

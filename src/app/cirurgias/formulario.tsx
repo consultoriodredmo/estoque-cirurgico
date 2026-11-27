@@ -30,7 +30,8 @@ export function FormularioCirurgia({ opcoes, cirurgia, dataInicial }: { opcoes: 
   const marcados = new Set(cirurgia?.procedimentos.map((p) => p.codigo));
   const grupos = [
     { titulo: "Procedimentos", itens: opcoes.procedimentos.filter((p) => p.tipo === "procedimento") },
-    { titulo: "Tecnologias", itens: opcoes.procedimentos.filter((p) => p.tipo === "tecnologia") },
+    { titulo: "Complementos", itens: opcoes.procedimentos.filter((p) => p.tipo === "complemento") },
+    { titulo: "Tecnologias (opcionais)", itens: opcoes.procedimentos.filter((p) => p.tipo === "tecnologia") },
   ];
 
   return (

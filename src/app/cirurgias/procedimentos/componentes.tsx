@@ -20,9 +20,12 @@ export function NovoProcedimento() {
       <summary className="cursor-pointer font-semibold">Novo procedimento ou tecnologia</summary>
       <form action={enviar} className="mt-4 flex flex-col gap-3">
         <Campo rotulo="Nome" name="nome" required minLength={3} />
-        <div className="flex gap-4 text-sm">
+        <div className="flex flex-wrap gap-4 text-sm">
           <label className="flex items-center gap-2">
             <input type="radio" name="tipo" value="procedimento" defaultChecked /> Procedimento
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="radio" name="tipo" value="complemento" /> Complemento
           </label>
           <label className="flex items-center gap-2">
             <input type="radio" name="tipo" value="tecnologia" /> Tecnologia
