@@ -92,6 +92,13 @@
       "when": 1795823328836,
       "tag": "0012_procedimentos_e_regras",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795825200664,
+      "tag": "0013_consumo",
+      "breakpoints": true
     }
   ]
 }

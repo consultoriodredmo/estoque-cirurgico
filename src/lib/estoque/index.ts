@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { registrarAuditoria } from "@/db/auditoria";
 import type { Db, Tx } from "@/db/client";
-import { custosMedios, lancamentos, locais, movimentacoes, produtos, saldos, user, variantes } from "@/db/schema";
+import { cirurgias, custosMedios, lancamentos, locais, movimentacoes, produtos, saldos, user, variantes } from "@/db/schema";
 import { ErroCatalogo, ErroPermissao, type Ator } from "../catalogo";
 import { pode, type Acao } from "../permissoes";
 
@@ -13,6 +13,7 @@ export const NOME_TIPO: Record<string, string> = {
   implantacao: "Carga inicial",
   ajuste: "Ajuste por contagem",
   estorno: "Estorno",
+  consumo: "Consumo de cirurgia",
 };
 
 function autorizar(ator: Ator, acao: Acao) {
@@ -149,7 +150,8 @@ const esquemaEstorno = z.object({
 
 /** Desfaz um lançamento criando outro, com as quantidades invertidas. */
 export async function estornarLancamento(db: Db, ator: Ator, dados: unknown): Promise<ResultadoLancamento> {
-  autorizar(ator, "ajuste:fazer");
+  // Ajuste e carga: só quem ajusta. Consumo: também quem confirma consumo (correção da Eliadna).
+  if (!pode(ator.perfil, "ajuste:fazer") && !pode(ator.perfil, "consumo:confirmar")) throw new ErroPermissao();
   const e = validar(esquemaEstorno, dados);
   return db.transaction(async (tx) => {
     await travarEstoque(tx);
@@ -158,6 +160,7 @@ export async function estornarLancamento(db: Db, ator: Ator, dados: unknown): Pr
 
     const [original] = await tx.select().from(lancamentos).where(eq(lancamentos.id, e.lancamentoId));
     if (!original) throw new ErroCatalogo("Lançamento não encontrado.");
+    if (original.tipo !== "consumo" && !pode(ator.perfil, "ajuste:fazer")) throw new ErroPermissao();
     if (original.tipo === "estorno") throw new ErroCatalogo("Um estorno não pode ser estornado. Faça um ajuste por contagem.");
     const [estornoAnterior] = await tx.select({ id: lancamentos.id }).from(lancamentos).where(eq(lancamentos.estornoDe, original.id));
     if (estornoAnterior) throw new ErroCatalogo("Este lançamento já foi estornado.");
@@ -187,6 +190,7 @@ export async function estornarLancamento(db: Db, ator: Ator, dados: unknown): Pr
       motivo: e.motivo,
       usuarioId: ator.id,
       estornoDe: original.id,
+      cirurgiaId: original.cirurgiaId,
     });
     for (const i of itens) {
       await tx.insert(movimentacoes).values({
@@ -198,10 +202,15 @@ export async function estornarLancamento(db: Db, ator: Ator, dados: unknown): Pr
         custoUnitario: i.custoUnitario,
       });
       const custo = paraNumero(i.custoUnitario);
-      if (custo != null && i.quantidade > 0) {
+      if (custo != null) {
+        // Desfaz uma entrada (tira o efeito no custo médio) ou devolve um consumo (volta ao custo em que saiu).
         await aplicarCustoMedio(tx, i.varianteId, totais.get(i.varianteId) ?? 0, -i.quantidade, custo);
-        totais.set(i.varianteId, (totais.get(i.varianteId) ?? 0) - i.quantidade);
       }
+      totais.set(i.varianteId, (totais.get(i.varianteId) ?? 0) - i.quantidade);
+    }
+    if (original.tipo === "consumo" && original.cirurgiaId) {
+      // Consumo desfeito: a cirurgia volta a aguardar confirmação.
+      await tx.update(cirurgias).set({ situacao: "agendada", atualizadoEm: new Date() }).where(eq(cirurgias.id, original.cirurgiaId));
     }
     await registrarAuditoria(tx, {
       acao: "estoque_estorno",
@@ -283,7 +292,7 @@ export async function listarSaldos(db: Db, ator: Ator): Promise<{ linhas: LinhaS
   return { linhas, veValores };
 }
 
-export type ItemLancamento = { produto: string; tamanho: string; quantidade: number; saldoApos: number; custoUnitario: number | null };
+export type ItemLancamento = { produto: string; tamanho: string; local: string; quantidade: number; saldoApos: number; custoUnitario: number | null };
 export type ResumoLancamento = {
   id: string;
   tipo: string;
@@ -293,6 +302,7 @@ export type ResumoLancamento = {
   em: Date;
   estornoDe: string | null;
   estornadoPor: string | null;
+  cirurgiaId: number | null;
   itens: ItemLancamento[];
 };
 
@@ -313,10 +323,15 @@ export async function listarLancamentos(
       usuario: user.name,
       em: lancamentos.em,
       estornoDe: lancamentos.estornoDe,
+      cirurgiaId: lancamentos.cirurgiaId,
     })
     .from(lancamentos)
     .leftJoin(user, eq(user.id, lancamentos.usuarioId))
-    .where(local ? eq(lancamentos.local, local) : undefined)
+    .where(
+      local
+        ? sql`(${lancamentos.local} = ${local} or exists (select 1 from movimentacoes m where m.lancamento_id = ${lancamentos.id} and m.local = ${local}))`
+        : undefined,
+    )
     .orderBy(desc(lancamentos.em))
     .limit(Math.min(filtro.limite ?? 50, 200));
   if (!cab.length) return [];
@@ -326,6 +341,7 @@ export async function listarLancamentos(
       lancamentoId: movimentacoes.lancamentoId,
       produto: produtos.nome,
       tamanho: variantes.nome,
+      local: movimentacoes.local,
       quantidade: movimentacoes.quantidade,
       saldoApos: movimentacoes.saldoApos,
       custoUnitario: movimentacoes.custoUnitario,
@@ -348,6 +364,7 @@ export async function listarLancamentos(
       .map((i) => ({
         produto: i.produto,
         tamanho: i.tamanho,
+        local: i.local,
         quantidade: i.quantidade,
         saldoApos: i.saldoApos,
         custoUnitario: veValores ? paraNumero(i.custoUnitario) : null,

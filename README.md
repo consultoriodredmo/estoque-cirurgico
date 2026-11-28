@@ -3,7 +3,7 @@
 Sistema web de gestão de estoque de materiais cirúrgicos da clínica.
 Plano completo e decisões: documento "Estoque Cirúrgico — Arquitetura e Plano de Execução".
 
-**Situação:** etapas 1.1 (fundação), 1.2 (login e perfis), 1.3 (produtos, tamanhos e fornecedores) 1.4 (saldos por local e livro de movimentações) 2.1 (cadastro manual de cirurgias) e 2.2 (regras de kit e materiais previstos) concluídas.
+**Situação:** etapas 1.1 (fundação), 1.2 (login e perfis), 1.3 (produtos, tamanhos e fornecedores) 1.4 (saldos por local e livro de movimentações) 2.1 (cadastro manual de cirurgias) 2.2 (regras de kit e materiais previstos) e 2.3 (confirmação de consumo) concluídas — Fase 2 completa.
 
 ## Tecnologia
 
@@ -98,6 +98,15 @@ Os testes recriam do zero o banco indicado em `TEST_DATABASE_URL`
 - **Quantidade provisória** aparece como "a confirmar" (ex.: cola na abdominoplastia isolada).
 - **Previsão não baixa estoque.** Sutiã, cinta e meia saem sem tamanho; o chinelo usa o tamanho informado na cirurgia.
 - **Edição:** só o administrador cria, altera e desativa regras; nada se apaga; tudo vai para a auditoria. A tela tem um simulador.
+
+## Consumo (etapa 2.3)
+
+- **Confirmação pelo celular** (hospital e administrador): o formulário vem preenchido com a previsão; informa-se tamanho, local e quantidade efetivamente usada, com "outro tamanho" e materiais extras. Fita kinesio entra só quando um rolo novo é aberto.
+- **Uma transação**: lançamento `consumo` ligado à cirurgia, uma linha negativa por tamanho e local, e a cirurgia passa a "consumo confirmado".
+- **Sem baixa dupla**: o mesmo formulário reenviado não duplica, e uma segunda confirmação é recusada (com trava na linha da cirurgia).
+- **Saldo insuficiente não bloqueia** (decisão do Edmo): a baixa entra e aparece como exceção (saldo negativo) para a contagem de segunda-feira.
+- **Custo aplicado**: cada linha guarda o custo médio do momento (base do custo por cirurgia). O hospital não vê valores.
+- **Correção**: "Desfazer confirmação" estorna o consumo, devolve o estoque (e o custo médio) e a cirurgia volta a aguardar confirmação. O hospital pode estornar consumo, mas não ajuste de inventário.
 
 ## Estrutura
 

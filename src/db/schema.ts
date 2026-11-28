@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   bigint,
   bigserial,
   boolean,
@@ -334,10 +335,13 @@ export const lancamentos = pgTable(
     usuarioId: text("usuario_id").notNull(),
     em: timestamp("em", { withTimezone: true }).notNull().defaultNow(),
     estornoDe: text("estorno_de").unique(),
+    /** Consumo (e o estorno dele): a cirurgia de origem. */
+    cirurgiaId: bigint("cirurgia_id", { mode: "number" }).references((): AnyPgColumn => cirurgias.id),
   },
   (t) => [
-    check("lancamentos_tipo", sql`${t.tipo} in ('implantacao', 'ajuste', 'estorno')`),
+    check("lancamentos_tipo", sql`${t.tipo} in ('implantacao', 'ajuste', 'estorno', 'consumo')`),
     index("lancamentos_em_idx").on(t.em),
+    index("lancamentos_cirurgia_idx").on(t.cirurgiaId),
   ],
 );
 
